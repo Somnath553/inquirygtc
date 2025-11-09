@@ -107,34 +107,34 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    // Increment counter periodically
-    const counterInterval = setInterval(() => {
-      setStudentCount((prev) => prev + 1);
-    }, 15000); // Increment every 15 seconds
+  // useEffect(() => {
+  //   // Increment counter periodically
+  //   const counterInterval = setInterval(() => {
+  //     setStudentCount((prev) => prev + 1);
+  //   }, 15000); // Increment every 15 seconds
 
-    // Show toast notifications periodically
-    const toastInterval = setInterval(() => {
-      const randomProfile = indianProfiles[Math.floor(Math.random() * indianProfiles.length)];
-      const newToast = {
-        id: Date.now(),
-        name: randomProfile.name,
-        avatar: randomProfile.avatar,
-      };
+  //   // Show toast notifications periodically
+  //   const toastInterval = setInterval(() => {
+  //     const randomProfile = indianProfiles[Math.floor(Math.random() * indianProfiles.length)];
+  //     const newToast = {
+  //       id: Date.now(),
+  //       name: randomProfile.name,
+  //       avatar: randomProfile.avatar,
+  //     };
 
-      setToasts((prev) => [...prev, newToast]);
+  //     setToasts((prev) => [...prev, newToast]);
 
-      // Remove toast after 4 seconds
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((toast) => toast.id !== newToast.id));
-      }, 4000);
-    }, 8000); // Show new toast every 8 seconds
+  //     // Remove toast after 4 seconds
+  //     setTimeout(() => {
+  //       setToasts((prev) => prev.filter((toast) => toast.id !== newToast.id));
+  //     }, 4000);
+  //   }, 8000); // Show new toast every 8 seconds
 
-    return () => {
-      clearInterval(counterInterval);
-      clearInterval(toastInterval);
-    };
-  }, []);
+  //   return () => {
+  //     clearInterval(counterInterval);
+  //     clearInterval(toastInterval);
+  //   };
+  // }, []);
 
   return (
     <div className="min-h-screen lg:h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex flex-col lg:flex-row overflow-x-hidden lg:overflow-hidden">
