@@ -1,11 +1,353 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+
+declare const NpfWidgetsInit: any;
+
+type EnquiryFormProps = {
+  wrapperClass?: string;
+  panelClass?: string;
+};
+
+const EnquiryForm = memo(function EnquiryForm({ wrapperClass = "", panelClass = "" }: EnquiryFormProps) {
+  return (
+    <div className={wrapperClass}>
+      <div
+        className={`flex justify-center items-center w-full bg-gradient-to-br from-[#0f2644] via-[#1a3a63] to-[#234d82] rounded-3xl shadow-[0_35px_90px_-40px_rgba(26,58,99,0.6)] border border-slate-800/50 pt-2.5 pb-2 px-0 sm:p-6 lg:p-8 ${panelClass}`}
+      >
+        <div
+          className="npf_wgts relative z-10 w-full min-h-[460px] lg:min-h-[520px] rounded-3xl"
+          data-height="520px"
+          data-width="55rem"
+          data-w="37c00655c662ff6100da477dfa203ac7"
+        ></div>
+      </div>
+    </div>
+  );
+});
+
+EnquiryForm.displayName = "EnquiryForm";
+
+const NpfWidgetManager = memo(function NpfWidgetManager() {
+  const widgetInstanceRef = useRef<any>(null);
+  const observerRef = useRef<MutationObserver | null>(null);
+  const timeoutsRef = useRef<number[]>([]);
+  const scriptLoadedRef = useRef(false);
+  const hoverCleanupRef = useRef<(() => void) | null>(null);
+  const initRetryRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const scriptSrc = "https://in4cdn.npfs.co/js/widget/npfwpopup.js";
+    const widgetConfig = {
+      widgetId: "37c00655c662ff6100da477dfa203ac7",
+      baseurl: "widgets.in4.nopaperforms.com",
+      formTitle: "Engineering Error Enquiry Form",
+      titleColor: "#eaa358",
+      backgroundColor: "#fef9f4",
+      iframeHeight: "500px",
+      buttonbgColor: "#eaa358",
+      buttonTextColor: "#FFF",
+      inputBorderColor: "#eaa358",
+      inputFocusColor: "#eaa358",
+      textColor: "#1f2937",
+    };
+
+    const scheduleCleanup = (timeoutId: number) => {
+      timeoutsRef.current.push(timeoutId);
+    };
+
+    const styleIframe = () => {
+      const frames = document.querySelectorAll<HTMLIFrameElement>(".npf_wgts iframe");
+
+      frames.forEach((iframe) => {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (!iframeDoc) {
+            return;
+          }
+
+          if (iframeDoc.querySelector("#npf-custom-style")) {
+            return;
+          }
+
+          const style = iframeDoc.createElement("style");
+          style.id = "npf-custom-style";
+          style.textContent = `
+            body {
+              font-family: 'Poppins', sans-serif !important;
+              background: linear-gradient(to bottom, #fef9f4, #fef9f4) !important;
+            }
+            body, p, span, div, label, h1, h2, h3, h4, h5, h6 {
+              color: #ffffff !important;
+            }
+            label {
+              color: #ffffff !important;
+              font-weight: 500 !important;
+            }
+            input, select, textarea {
+              border: 2px solid #14b8a6 !important;
+              border-radius: 8px !important;
+              padding: 10px 14px !important;
+              transition: all 0.2s ease !important;
+              background: white !important;
+              color: #1f2937 !important;
+            }
+            input::placeholder {
+              color: #9ca3af !important;
+            }
+            input:focus, select:focus, textarea:focus {
+              border-color: #eaa358 !important;
+              outline: none !important;
+              box-shadow: 0 0 0 3px rgba(234, 163, 88, 0.15) !important;
+            }
+            button[type="submit"], .submit-btn, [class*="submit"] {
+              background: linear-gradient(to right, #eaa358, #d89035) !important;
+              border: none !important;
+              color: white !important;
+              padding: 12px 24px !important;
+              border-radius: 8px !important;
+              font-weight: 600 !important;
+              cursor: pointer !important;
+              transition: all 0.3s ease !important;
+              box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3) !important;
+            }
+            button[type="submit"]:hover {
+              background: linear-gradient(to right, #c67d1a, #a66915) !important;
+              transform: translateY(-1px) !important;
+            }
+          `;
+          iframeDoc.head.appendChild(style);
+        } catch (error) {
+          console.log("Cannot access iframe (CORS blocked):", (error as Error).message);
+        }
+      });
+    };
+
+    const centerModal = () => {
+      const modals = document.querySelectorAll<HTMLElement>(
+        '[id*="npfWidget"], [class*="npf-modal"], [class*="npf_modal"]'
+      );
+
+      modals.forEach((modal) => {
+        modal.style.display = "flex";
+        modal.style.alignItems = "center";
+        modal.style.justifyContent = "center";
+        modal.style.position = "fixed";
+        modal.style.top = "0";
+        modal.style.left = "0";
+        modal.style.right = "0";
+        modal.style.bottom = "0";
+        modal.style.zIndex = "9999";
+      });
+    };
+
+    const attachButtonHover = () => {
+      const button = document.querySelector<HTMLButtonElement>(".npfWidgetButton");
+
+      if (!button || button.dataset.hoverBound === "true") {
+        return;
+      }
+
+      const handleEnter = () => {
+        button.style.transform = "translateY(-3px) scale(1.05)";
+        button.style.boxShadow = "0 12px 24px rgba(234, 163, 88, 0.4)";
+      };
+
+      const handleLeave = () => {
+        button.style.transform = "translateY(0) scale(1)";
+        button.style.boxShadow = "0 8px 16px rgba(234, 163, 88, 0.3)";
+      };
+
+      button.dataset.hoverBound = "true";
+      button.addEventListener("mouseenter", handleEnter);
+      button.addEventListener("mouseleave", handleLeave);
+
+      hoverCleanupRef.current = () => {
+        button.removeEventListener("mouseenter", handleEnter);
+        button.removeEventListener("mouseleave", handleLeave);
+        delete button.dataset.hoverBound;
+        hoverCleanupRef.current = null;
+      };
+    };
+
+    const attemptAutoOpen = () => {
+      const instance = widgetInstanceRef.current as {
+        show?: () => void;
+        open?: () => void;
+      } | null;
+
+      if (!instance) {
+        return;
+      }
+
+      if (typeof instance.show === "function") {
+        instance.show();
+      } else if (typeof instance.open === "function") {
+        instance.open();
+      }
+    };
+
+    const scheduleEnhancements = () => {
+      scheduleCleanup(window.setTimeout(styleIframe, 1500));
+      scheduleCleanup(window.setTimeout(styleIframe, 3000));
+      scheduleCleanup(window.setTimeout(centerModal, 1500));
+      scheduleCleanup(window.setTimeout(centerModal, 3000));
+      scheduleCleanup(window.setTimeout(centerModal, 1200));
+      scheduleCleanup(window.setTimeout(attachButtonHover, 200));
+      scheduleCleanup(window.setTimeout(attemptAutoOpen, 1000));
+
+      if (!observerRef.current) {
+        observerRef.current = new MutationObserver(() => {
+          centerModal();
+        });
+        observerRef.current.observe(document.body, { childList: true, subtree: true });
+      }
+    };
+
+    const initializeWidget = () => {
+      const globalWindow = window as typeof window & {
+        NpfWidgetsInit?: new (config: typeof widgetConfig) => unknown;
+      };
+
+      const getConstructor = () => {
+        if (typeof NpfWidgetsInit === "function") {
+          return NpfWidgetsInit;
+        }
+
+        if (typeof globalWindow.NpfWidgetsInit === "function") {
+          return globalWindow.NpfWidgetsInit;
+        }
+
+        try {
+          const fn = new Function("return typeof NpfWidgetsInit === 'function' ? NpfWidgetsInit : null;");
+          return fn();
+        } catch (error) {
+          console.warn("Unable to probe for NpfWidgetsInit via Function constructor:", error);
+          return null;
+        }
+      };
+
+      const Constructor = getConstructor();
+
+      if (widgetInstanceRef.current) {
+        scheduleEnhancements();
+        return;
+      }
+
+      if (!Constructor) {
+        const maxRetries = 20;
+        if (initRetryRef.current < maxRetries) {
+          initRetryRef.current += 1;
+          scheduleCleanup(window.setTimeout(initializeWidget, 200));
+        } else {
+          console.error("NpfWidgetsInit is not available on window even after waiting.");
+        }
+        return;
+      }
+
+      initRetryRef.current = 0;
+
+      try {
+        const instance = new Constructor(widgetConfig);
+        widgetInstanceRef.current = instance;
+        if (typeof globalWindow.NpfWidgetsInit !== "function") {
+          globalWindow.NpfWidgetsInit = Constructor;
+        }
+        scheduleEnhancements();
+      } catch (error) {
+        console.error("Error initializing NPF widget:", error);
+      }
+    };
+
+    const handleScriptLoad = () => {
+      scriptLoadedRef.current = true;
+      if (scriptEl) {
+        scriptEl.dataset.npfWidgetLoaded = "true";
+      }
+      initializeWidget();
+    };
+
+    let scriptEl = document.querySelector<HTMLScriptElement>(`script[src="${scriptSrc}"]`);
+
+    if (!scriptEl) {
+      scriptEl = document.createElement("script");
+      scriptEl.src = scriptSrc;
+      scriptEl.async = true;
+      scriptEl.dataset.npfWidgetManaged = "true";
+      scriptEl.addEventListener("load", handleScriptLoad);
+      scriptEl.addEventListener("error", () => {
+        console.error("Failed to load NPF widget script");
+      });
+      document.body.appendChild(scriptEl);
+    } else if (scriptEl.dataset.npfWidgetLoaded === "true") {
+      scriptLoadedRef.current = true;
+      initializeWidget();
+    } else {
+      scriptEl.addEventListener("load", handleScriptLoad);
+    }
+
+    const initialTimeout = window.setTimeout(() => {
+      if (scriptLoadedRef.current) {
+        initializeWidget();
+      }
+    }, 500);
+    scheduleCleanup(initialTimeout);
+
+    return () => {
+      timeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeoutsRef.current = [];
+
+      hoverCleanupRef.current?.();
+
+      if (scriptEl) {
+        scriptEl.removeEventListener("load", handleScriptLoad);
+      }
+
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <button
+      type="button"
+      className="npfWidgetButton npfWidget-37c00655c662ff6100da477dfa203ac7"
+      style={{
+        display: "none",
+        position: "fixed",
+        bottom: "16px",
+        right: "16px",
+        background: "linear-gradient(to right, #eaa358, #d89035)",
+        color: "white",
+        padding: "10px 16px",
+        border: "none",
+        borderRadius: "12px",
+        fontWeight: 700,
+        boxShadow: "0 8px 16px rgba(234, 163, 88, 0.3)",
+        cursor: "pointer",
+        zIndex: 50,
+        transition: "all 0.3s ease",
+        fontSize: "13px",
+        letterSpacing: "0.5px",
+      }}
+    >
+      🎓 Enquire Now!
+    </button>
+  );
+});
+
+NpfWidgetManager.displayName = "NpfWidgetManager";
 
 export default function Home() {
   const [studentCount, setStudentCount] = useState(58);
   const [toasts, setToasts] = useState<Array<{ id: number; name: string; avatar: string }>>([]);
-  const [isDesktop, setIsDesktop] = useState(false); 
+  const [isDesktop, setIsDesktop] = useState(false);
 
   const indianProfiles = [
     {
@@ -57,27 +399,6 @@ export default function Home() {
       name
     )}&backgroundType=gradientLinear&radius=50`;
 
-  const EnquiryForm = ({
-    wrapperClass = "",
-    panelClass = "",
-  }: {
-    wrapperClass?: string;
-    panelClass?: string;
-  }) => (
-    <div className={wrapperClass}>
-      <div
-        className={`flex justify-center items-center w-full bg-gradient-to-br from-[#0f2644] via-[#1a3a63] to-[#234d82] rounded-3xl shadow-[0_35px_90px_-40px_rgba(26,58,99,0.6)] border border-slate-800/50 p-5 sm:p-6 lg:p-8 ${panelClass}`}
-      >
-        <div
-          className="npf_wgts relative z-10 w-full min-h-[460px] lg:min-h-[520px] rounded-3xl"
-          data-height="520px"
-          data-width="55rem"
-          data-w="37c00655c662ff6100da477dfa203ac7"
-        ></div>
-      </div>
-    </div>
-  );
-
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
@@ -94,7 +415,6 @@ export default function Home() {
     if (typeof mediaQuery.addEventListener === "function") {
       mediaQuery.addEventListener("change", handleChange);
     } else {
-      // Fallback for older browsers
       mediaQuery.addListener(handleChange);
     }
 
@@ -107,227 +427,43 @@ export default function Home() {
     };
   }, []);
 
-  // useEffect(() => {
-  //   // Increment counter periodically
-  //   const counterInterval = setInterval(() => {
-  //     setStudentCount((prev) => prev + 1);
-  //   }, 15000); // Increment every 15 seconds
+  useEffect(() => {
+    const counterInterval = setInterval(() => {
+      setStudentCount((prev) => prev + 1);
+    }, 15000);
 
-  //   // Show toast notifications periodically
-  //   const toastInterval = setInterval(() => {
-  //     const randomProfile = indianProfiles[Math.floor(Math.random() * indianProfiles.length)];
-  //     const newToast = {
-  //       id: Date.now(),
-  //       name: randomProfile.name,
-  //       avatar: randomProfile.avatar,
-  //     };
+    const toastInterval = setInterval(() => {
+      const randomProfile = indianProfiles[Math.floor(Math.random() * indianProfiles.length)];
+      const newToast = {
+        id: Date.now(),
+        name: randomProfile.name,
+        avatar: randomProfile.avatar,
+      };
 
-  //     setToasts((prev) => [...prev, newToast]);
+      setToasts((prev) => [...prev, newToast]);
 
-  //     // Remove toast after 4 seconds
-  //     setTimeout(() => {
-  //       setToasts((prev) => prev.filter((toast) => toast.id !== newToast.id));
-  //     }, 4000);
-  //   }, 8000); // Show new toast every 8 seconds
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((toast) => toast.id !== newToast.id));
+      }, 4000);
+    }, 8000);
 
-  //   return () => {
-  //     clearInterval(counterInterval);
-  //     clearInterval(toastInterval);
-  //   };
-  // }, []);
+    return () => {
+      clearInterval(counterInterval);
+      clearInterval(toastInterval);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen lg:h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex flex-col lg:flex-row overflow-x-hidden lg:overflow-hidden">
-
-<div dangerouslySetInnerHTML={{
-        __html: `
-          <button type="button" class="npfWidgetButton npfWidget-37c00655c662ff6100da477dfa203ac7" style="display: none; position: fixed; bottom: 16px; right: 16px; background: linear-gradient(to right, #eaa358, #d89035); color: white; padding: 10px 16px; border: none; border-radius: 12px; font-weight: 700; box-shadow: 0 8px 16px rgba(234, 163, 88, 0.3); cursor: pointer; z-index: 50; transition: all 0.3s ease; font-size: 13px; letter-spacing: 0.5px;">
-            🎓 Enquire Now!
-          </button>
-          <script src="https://in4cdn.npfs.co/js/widget/npfwpopup.js" onload="console.log('NPF script loaded successfully')" onerror="console.error('Failed to load NPF script')"></script>
-          <script>
-            // Wait for DOM to be fully loaded
-            document.addEventListener('DOMContentLoaded', function() {
-              console.log('DOM fully loaded, initializing NPF widget...');
-              
-              // Wait a bit more for all scripts to load
-              setTimeout(function() {
-                try {
-                  console.log('NpfWidgetsInit available:', typeof NpfWidgetsInit);
-                  
-                  let npfW37c00655c662ff6100da477dfa203ac7 = new NpfWidgetsInit({
-                    "widgetId": "37c00655c662ff6100da477dfa203ac7",
-                    "baseurl": "widgets.in4.nopaperforms.com",
-                    "formTitle": "Engineering Error Enquiry Form",
-                    "titleColor": "#eaa358",
-                    "backgroundColor": "#fef9f4",
-                    "iframeHeight": "500px",
-                    "buttonbgColor": "#eaa358",
-                    "buttonTextColor": "#FFF",
-                    "inputBorderColor": "#eaa358",
-                    "inputFocusColor": "#eaa358",
-                    "textColor": "#1f2937",
-                  });
-                  
-                  console.log('NPF Widget initialized:', npfW37c00655c662ff6100da477dfa203ac7);
-                  
-                  // Add hover effect to button
-                  const enquireButton = document.querySelector('.npfWidgetButton');
-                  if (enquireButton) {
-                    enquireButton.addEventListener('mouseenter', function() {
-                      this.style.transform = 'translateY(-3px) scale(1.05)';
-                      this.style.boxShadow = '0 12px 24px rgba(234, 163, 88, 0.4)';
-                    });
-                    enquireButton.addEventListener('mouseleave', function() {
-                      this.style.transform = 'translateY(0) scale(1)';
-                      this.style.boxShadow = '0 8px 16px rgba(234, 163, 88, 0.3)';
-                    });
-                  }
-                  
-                  // Try to style iframe content (may be blocked by CORS)
-                  function styleIframe() {
-                    const iframes = document.querySelectorAll('.npf_wgts iframe');
-                    iframes.forEach(function(iframe) {
-                      try {
-                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        if (iframeDoc) {
-                          const style = iframeDoc.createElement('style');
-                          style.textContent = \`
-                            body { 
-                              font-family: 'Poppins', sans-serif !important; 
-                              background: linear-gradient(to bottom, #fef9f4, #fef9f4) !important;
-                            }
-                            /* Keep all text white for visibility on dark background */
-                            body, p, span, div, label, h1, h2, h3, h4, h5, h6 {
-                              color: #ffffff !important;
-                            }
-                            /* Form labels white */
-                            label {
-                              color: #ffffff !important;
-                              font-weight: 500 !important;
-                            }
-                            /* Input fields with white background for contrast */
-                            input, select, textarea { 
-                              border: 2px solid #14b8a6 !important;
-                              border-radius: 8px !important;
-                              padding: 10px 14px !important;
-                              transition: all 0.2s ease !important;
-                              background: white !important;
-                              color: #1f2937 !important;
-                            }
-                            input::placeholder {
-                              color: #9ca3af !important;
-                            }
-                            input:focus, select:focus, textarea:focus {
-                              border-color: #eaa358 !important;
-                              outline: none !important;
-                              box-shadow: 0 0 0 3px rgba(234, 163, 88, 0.15) !important;
-                            }
-                            /* Submit button with contrasting color */
-                            button[type="submit"], .submit-btn, [class*="submit"] {
-                              background: linear-gradient(to right, #eaa358, #d89035) !important;
-                              border: none !important;
-                              color: white !important;
-                              padding: 12px 24px !important;
-                              border-radius: 8px !important;
-                              font-weight: 600 !important;
-                              cursor: pointer !important;
-                              transition: all 0.3s ease !important;
-                              box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3) !important;
-                            }
-                            button[type="submit"]:hover {
-                              background: linear-gradient(to right, #c67d1a, #a66915) !important;
-                              transform: translateY(-1px) !important;
-                            }
-                          \`;
-                          iframeDoc.head.appendChild(style);
-                          console.log('Custom styles injected into iframe');
-                        }
-                      } catch (e) {
-                        console.log('Cannot access iframe (CORS blocked):', e.message);
-                      }
-                    });
-                  }
-                  
-                  // Function to center the modal
-                  function centerModal() {
-                    const modals = document.querySelectorAll('[id*="npfWidget"], [class*="npf-modal"], [class*="npf_modal"]');
-                    modals.forEach(function(modal) {
-                      if (modal) {
-                        modal.style.display = 'flex';
-                        modal.style.alignItems = 'center';
-                        modal.style.justifyContent = 'center';
-                        modal.style.position = 'fixed';
-                        modal.style.top = '0';
-                        modal.style.left = '0';
-                        modal.style.right = '0';
-                        modal.style.bottom = '0';
-                        modal.style.zIndex = '9999';
-                        console.log('Modal centered');
-                      }
-                    });
-                  }
-                  
-                  // Try to inject styles after iframe loads
-                  setTimeout(styleIframe, 1500);
-                  setTimeout(styleIframe, 3000);
-                  
-                  // Center modal on load
-                  setTimeout(centerModal, 1500);
-                  setTimeout(centerModal, 3000);
-                  
-                  // Observer to center modal when it appears
-                  const observer = new MutationObserver(function(mutations) {
-                    centerModal();
-                  });
-                  observer.observe(document.body, { childList: true, subtree: true });
-                  
-                  // Try to auto-open the popup
-                  setTimeout(function() {
-                    console.log('Attempting to auto-open popup...');
-                     
-                    // Try different methods
-                    if (npfW37c00655c662ff6100da477dfa203ac7.show) {
-                      npfW37c00655c662ff6100da477dfa203ac7.show();
-                      console.log('Popup opened using show()');
-                    } else if (npfW37c00655c662ff6100da477dfa203ac7.open) {
-                      npfW37c00655c662ff6100da477dfa203ac7.open();
-                      console.log('Popup opened using open()');
-                    } else {
-                      // Try clicking the button
-                      const button = document.querySelector('.npfWidgetButton');
-                      // if (button) {
-                      //   button.click();
-                      //   console.log('Popup opened by clicking button');
-                      //   // Try to style and center after popup opens
-                      //   setTimeout(styleIframe, 500);
-                      //   setTimeout(centerModal, 500);
-                      //   setTimeout(centerModal, 1000);
-                      // } else {
-                      //   console.log('Button not found');
-                      // }
-                    }
-                    
-                    // Also try centering immediately after opening
-                    setTimeout(centerModal, 1200);
-                  }, 1000);
-                  
-                } catch (error) {
-                  console.error('Error initializing NPF widget:', error);
-                }
-              }, 500);
-            });
-          </script>
-        `
-      }} />
+      <NpfWidgetManager />
       {/* Left Panel */}
-      <div className="flex-1 bg-gradient-to-br from-[#081120] via-[#0f1c33] to-[#122540] flex flex-col justify-center items-center text-white p-8 md:p-12 lg:p-16 relative overflow-hidden min-h-[50vh] lg:h-full">
+      <div className="flex-1 bg-gradient-to-br from-[#081120] via-[#0f1c33] to-[#122540] flex flex-col justify-center items-center text-white p-4 sm:p-5 md:p-12 lg:p-16 relative overflow-hidden min-h-[50vh] lg:h-full">
         {/* Background decoration */}
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-sky-400/5 mix-blend-screen"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl -translate-y-48 translate-x-48 hidden lg:block"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-400/10 rounded-full blur-2xl translate-y-32 -translate-x-32 hidden lg:block"></div>
         
-        <div className="relative z-10 w-full max-w-lg space-y-9 px-4 text-left">
+        <div className="relative z-10 w-full max-w-lg space-y-6 px-2 sm:px-4 text-left">
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/60 bg-cyan-500/20 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-cyan-100 shadow-[0_12px_40px_-20px_rgba(34,211,238,0.8)] backdrop-blur">
             <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300"></span>
             Premier Guidance
@@ -346,35 +482,30 @@ export default function Home() {
             <EnquiryForm wrapperClass="w-full max-w-xl mx-auto mt-6" />
           )}
 
-          <div className="w-full rounded-3xl border border-cyan-200/45 bg-[#102b4c]/90 p-6 shadow-[0_35px_80px_-35px_rgba(14,165,233,0.65)] backdrop-blur-xl">
+          <div className="w-full rounded-3xl border border-cyan-200/45 bg-[#102b4c]/90 p-4 sm:p-6 shadow-[0_35px_80px_-35px_rgba(14,165,233,0.65)] backdrop-blur-xl">
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-cyan-400/25 p-3 shadow-inner">
-                <svg className="h-8 w-8 text-cyan-50" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
-                </svg>
-              </div>
               <div className="space-y-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-50/80">What we cover</p>
                 <ul className="space-y-2 text-sm md:text-[15px] text-white/95">
                   <li className="flex items-start gap-3">
-                    <span className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-400/35 text-cyan-50 shadow-inner">
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-[0_6px_12px_-6px_rgba(8,145,178,0.8)]">
+                      <svg className="h-[14px] w-[14px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
                     Expert counselling across 250+ Indian private &amp; deemed universities
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-400/35 text-cyan-50 shadow-inner">
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-[0_6px_12px_-6px_rgba(8,145,178,0.8)]">
+                      <svg className="h-[14px] w-[14px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
                     Profile evaluation, shortlisting and scholarship maximisation
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-400/35 text-cyan-50 shadow-inner">
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-[0_6px_12px_-6px_rgba(8,145,178,0.8)]">
+                      <svg className="h-[14px] w-[14px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
@@ -385,7 +516,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="w-full flex flex-col gap-6 rounded-3xl border border-cyan-200/45 bg-[#0f2744]/90 p-6 backdrop-blur-xl shadow-[0_35px_80px_-35px_rgba(14,165,233,0.6)]">
+          <div className="w-full flex flex-col gap-4 sm:gap-6 rounded-3xl border border-cyan-200/45 bg-[#0f2744]/90 p-4 sm:p-6 backdrop-blur-xl shadow-[0_35px_80px_-35px_rgba(14,165,233,0.6)]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.26em] text-cyan-100/85">Families onboarded</p>
@@ -398,7 +529,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+              <div className="flex items-center self-start sm:self-auto">
               <div className="flex -space-x-3">
                 {featuredStudents.map((student, index) => (
                   <img
@@ -417,14 +549,16 @@ export default function Home() {
                     }}
                   />
                 ))}
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-cyan-200/50 bg-cyan-100/80 text-sm font-semibold text-slate-900 shadow-[0_8px_20px_-10px_rgba(34,211,238,0.8)]">
+                </div>
+                <span className="ml-3 flex h-10 w-10 items-center justify-center rounded-full border-2 border-cyan-200/50 bg-cyan-100/80 text-sm font-semibold text-slate-900 shadow-[0_8px_20px_-10px_rgba(34,211,238,0.8)] shrink-0">
                   +54
                 </span>
               </div>
-              <p className="text-[15px] font-medium text-slate-100/95">
+              <p className="text-[15px] font-medium text-slate-100/95 sm:text-right leading-snug">
                 Trusted by aspirants from 30+ cities
               </p>
             </div>
+
           </div>
 
         </div>
