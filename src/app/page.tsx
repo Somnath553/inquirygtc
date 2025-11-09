@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 export default function Home() {
   const [studentCount, setStudentCount] = useState(58);
   const [toasts, setToasts] = useState<Array<{ id: number; name: string; avatar: string }>>([]);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false); 
 
   const indianProfiles = [
     {
