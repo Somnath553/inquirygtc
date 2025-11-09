@@ -4,9 +4,9 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 
 const poppins = Poppins({
-  weight: ['300', '400', '500', '600', '700', '800'],
   subsets: ["latin"],
-  variable: "--font-poppins",
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -14,17 +14,11 @@ export const metadata: Metadata = {
   description: "Get admission to premier M.Tech programs with expert guidance and counseling",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <head></head>
-      <body
-        className={`${poppins.variable} font-sans antialiased`}
-      >
+      <body className={poppins.className}>
         <Script
           id="npf-tracking"
           strategy="afterInteractive"
