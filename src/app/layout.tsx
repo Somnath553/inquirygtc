@@ -10,8 +10,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "GATE M.Tech - Post-Graduate Engineering Admissions",
-  description: "Get admission to premier M.Tech programs with expert guidance and counseling",
+  title: "Engineering Mirror | B.Tech Admissions",
+  description:
+    "Engineering Mirror supports B.Tech aspirants with personalized counseling, curated resources, and streamlined tools to secure the ideal undergraduate engineering seat.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

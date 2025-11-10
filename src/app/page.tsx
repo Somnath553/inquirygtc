@@ -45,7 +45,7 @@ const NpfWidgetManager = memo(function NpfWidgetManager() {
     const widgetConfig = {
       widgetId: "37c00655c662ff6100da477dfa203ac7",
       baseurl: "widgets.in4.nopaperforms.com",
-      formTitle: "Engineering Error Enquiry Form",
+      formTitle: "Engineering Mirror B.Tech Enquiry Form",
       titleColor: "#eaa358",
       backgroundColor: "#fef9f4",
       iframeHeight: "500px",
@@ -213,7 +213,7 @@ const NpfWidgetManager = memo(function NpfWidgetManager() {
         NpfWidgetsInit?: new (config: typeof widgetConfig) => unknown;
       };
 
-      const getConstructor = () => {
+      const resolveConstructor = () => {
         if (typeof NpfWidgetsInit === "function") {
           return NpfWidgetsInit;
         }
@@ -231,7 +231,7 @@ const NpfWidgetManager = memo(function NpfWidgetManager() {
         }
       };
 
-      const Constructor = getConstructor();
+      const Constructor = resolveConstructor();
 
       if (widgetInstanceRef.current) {
         scheduleEnhancements();
@@ -394,7 +394,7 @@ export default function Home() {
 
   const featuredStudents = indianProfiles.slice(0, 4);
 
-  const getFallbackAvatar = (name: string) =>
+  const createFallbackAvatar = (name: string) =>
     `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
       name
     )}&backgroundType=gradientLinear&radius=50`;
@@ -543,7 +543,7 @@ export default function Home() {
                     referrerPolicy="no-referrer"
                     onError={(event) => {
                       if (event.currentTarget.dataset.fallback !== "true") {
-                        event.currentTarget.src = getFallbackAvatar(student.name);
+                        event.currentTarget.src = createFallbackAvatar(student.name);
                         event.currentTarget.dataset.fallback = "true";
                       }
                     }}
@@ -579,7 +579,7 @@ export default function Home() {
                   referrerPolicy="no-referrer"
                   onError={(event) => {
                     if (event.currentTarget.dataset.fallback !== "true") {
-                      event.currentTarget.src = getFallbackAvatar(toast.name);
+                      event.currentTarget.src = createFallbackAvatar(toast.name);
                       event.currentTarget.dataset.fallback = "true";
                     }
                   }}
@@ -604,7 +604,7 @@ export default function Home() {
           {/* Header */}
           <div className="flex-shrink-0 px-6 lg:px-8 xl:px-10 pt-4 pb-3 lg:pt-5 lg:pb-4 border-b border-slate-200/60">
             <div className="text-sm text-indigo-600 font-semibold mb-1 lg:mb-1.5 tracking-wider uppercase">COLLEGE ADMISSION</div>
-            <h2 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-slate-900 mb-1 lg:mb-2 leading-tight">Get Admission Guidance</h2>
+            <h2 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-slate-900 mb-1 lg:mb-2 leading-tight">B.Tech Admission Guidance</h2>
             <p className="text-slate-600 text-sm lg:text-base leading-relaxed">
               Share your details and our expert counselors will guide you through the college admission process.
             </p>
