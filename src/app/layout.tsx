@@ -10,7 +10,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Engineering Mirror | B.Tech Admissions",
+  title: "Engineering Error | B.Tech Admissions",
   description:
     "Engineering Mirror supports B.Tech aspirants with personalized counseling, curated resources, and streamlined tools to secure the ideal undergraduate engineering seat.",
 };

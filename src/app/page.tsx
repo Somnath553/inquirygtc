@@ -45,7 +45,7 @@ const NpfWidgetManager = memo(function NpfWidgetManager() {
     const widgetConfig = {
       widgetId: "37c00655c662ff6100da477dfa203ac7",
       baseurl: "widgets.in4.nopaperforms.com",
-      formTitle: "Engineering Mirror B.Tech Enquiry Form",
+      formTitle: "Engineering Error B.Tech Enquiry Form",
       titleColor: "#eaa358",
       backgroundColor: "#fef9f4",
       iframeHeight: "500px",
